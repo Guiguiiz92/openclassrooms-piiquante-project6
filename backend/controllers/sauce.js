@@ -12,7 +12,7 @@ exports.createSauce = (req, res, next) => {
         usersDisliked: []
     });
     sauce.save()
-        .then(() => { res.status(201).json({ message: 'Objet enregistré !' }) })
+        .then(() => { res.status(201).json({ message: 'Sauce enregistré !' }) })
         .catch(error => { res.status(400).json({ error }) })
 };
 
@@ -57,9 +57,11 @@ exports.usersLiked = (req, res, next) => {
     Sauce.findOne({ _id: req.params.id })
         .then((sauce) => {
             if (like === 1) {
+                //Vérifie si l'utilisateur a déjà aimé la sauce
                 sauce.likes++
                 sauce.usersLiked.push(userId)
             } else if (like === -1) {
+                //Vérifie si l'utilisateur a déjà  pas aimé la sauce
                 sauce.dislikes++
                 sauce.usersDisliked.push(userId)
             } else {
@@ -67,14 +69,18 @@ exports.usersLiked = (req, res, next) => {
                 if (indexToDelete >= 0) {
                     sauce.usersLiked.splice(indexToDelete, 1)
                     sauce.likes--
-                } else {
+                }
+                //Recherche de l'indexToDelete
+                //If pour savoir si index existe
+                // −> Splice 
+                else {
                     indexToDelete = sauce.usersDisliked.findIndex((id) => id === userId)
                     sauce.usersDisliked.splice(indexToDelete, 1)
                     sauce.dislikes--
                 }
             }
             sauce.save()
-                .then(() => { res.status(200).json({ message: 'Objet modifié !' }) })
+                .then(() => { res.status(200).json({ message: 'Sauce modifié !' }) })
                 .catch(error => { res.status(400).json({ error }) })
         })
         .catch((error) => {
@@ -90,7 +96,7 @@ exports.deleteSauce = (req, res, next) => {
                 const filename = sauce.imageUrl.split('/images/')[1];
                 fs.unlink(`images/${filename}`, () => {
                     Sauce.deleteOne({ _id: req.params.id })
-                        .then(() => { res.status(200).json({ message: 'Objet supprimé !' }) })
+                        .then(() => { res.status(200).json({ message: 'Sauce supprimé !' }) })
                         .catch(error => res.status(401).json({ error }));
                 });
             }
