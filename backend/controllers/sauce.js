@@ -6,8 +6,6 @@ exports.createSauce = (req, res, next) => {
     const sauce = new Sauce({
         ...sauceObject,
         imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
-        likes: 0,
-        dislikes: 0,
         usersLiked: [],
         usersDisliked: []
     });
@@ -42,6 +40,13 @@ exports.modifySauce = (req, res, next) => {
                 res.status(401).json({ message: 'Not authorized' });
             } else {
                 Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id })
+                    .then(() => {
+                        if (sauceObject.imageUrl !== sauce.imageUrl) {
+                            const splitedImageUrl = sauce.imageUrl.split('/')
+                            const filename = splitedImageUrl[splitedImageUrl.length - 1]
+                            fs.unlink(`images/${filename}`, () => console.log('Ancienne image supprimée'))
+                        }
+                    })
                     .then(() => res.status(200).json({ message: 'Objet modifié!' }))
                     .catch(error => res.status(401).json({ error }));
             }
@@ -56,27 +61,29 @@ exports.usersLiked = (req, res, next) => {
     const userId = req.body.userId
     Sauce.findOne({ _id: req.params.id })
         .then((sauce) => {
+            const indexUserLiked = sauce.usersLiked.findIndex((id) => id === userId)
+            const indexUserDisliked = sauce.usersDisliked.findIndex((id) => id === userId)
             if (like === 1) {
-                //Vérifie si l'utilisateur a déjà aimé la sauce
-                sauce.likes++
-                sauce.usersLiked.push(userId)
+
+                if (indexUserLiked === -1) {
+                    sauce.likes++
+                    sauce.usersLiked.push(userId)
+                }
             } else if (like === -1) {
-                //Vérifie si l'utilisateur a déjà  pas aimé la sauce
-                sauce.dislikes++
-                sauce.usersDisliked.push(userId)
-            } else {
-                let indexToDelete = sauce.usersLiked.findIndex((id) => id === userId)
-                if (indexToDelete >= 0) {
+                if (indexUserDisliked === -1) {
+                    sauce.dislikes++
+                    sauce.usersDisliked.push(userId)
+                }
+            } else if (like === 0) {
+                if (indexUserLiked >= 0) {
                     sauce.usersLiked.splice(indexToDelete, 1)
                     sauce.likes--
                 }
-                //Recherche de l'indexToDelete
-                //If pour savoir si index existe
-                // −> Splice 
                 else {
-                    indexToDelete = sauce.usersDisliked.findIndex((id) => id === userId)
-                    sauce.usersDisliked.splice(indexToDelete, 1)
-                    sauce.dislikes--
+                    if (indexUserDisliked >= 0) {
+                        sauce.usersDisliked.splice(indexToDelete, 1)
+                        sauce.dislikes--
+                    }
                 }
             }
             sauce.save()
