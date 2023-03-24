@@ -2,6 +2,8 @@ const express = require('express')
 const mongoose = require('mongoose');
 const path = require('path');
 const dotenv = require("dotenv");
+const helmet = require('helmet');
+const cors = require('cors');
 
 const app = express()
 dotenv.config();
@@ -15,8 +17,21 @@ mongoose.connect(process.env.MONGODB_URL,
         useUnifiedTopology: true
     })
     .then(() => console.log('Connexion à MongoDB réussie !'))
-    .catch(() => console.log('Connexion à MongoDB échouée !'));
+    .catch((error) => console.log('Connexion à MongoDB échouée !', error));
 
+const corsOptions = {
+    origin: process.env.FRONT_URL
+};
+
+app.use(cors(corsOptions));
+
+const cspOptions = {
+    directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        'img-src': ["'self'", process.env.FRONT_URL]
+    }
+};
+app.use(helmet.contentSecurityPolicy(cspOptions));
 app.use(express.json());
 
 app.use((req, res, next) => {

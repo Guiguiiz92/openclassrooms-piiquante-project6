@@ -6,8 +6,6 @@ exports.createSauce = (req, res, next) => {
     const sauce = new Sauce({
         ...sauceObject,
         imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
-        usersLiked: [],
-        usersDisliked: []
     });
     sauce.save()
         .then(() => { res.status(201).json({ message: 'Sauce enregistré !' }) })
@@ -44,7 +42,7 @@ exports.modifySauce = (req, res, next) => {
                         if (sauceObject.imageUrl !== sauce.imageUrl) {
                             const splitedImageUrl = sauce.imageUrl.split('/')
                             const filename = splitedImageUrl[splitedImageUrl.length - 1]
-                            fs.unlink(`images/${filename}`, () => console.log('Ancienne image supprimée'))
+                            fs.unlinkSync(`images/${filename}`)
                         }
                     })
                     .then(() => res.status(200).json({ message: 'Objet modifié!' }))
@@ -61,27 +59,30 @@ exports.usersLiked = (req, res, next) => {
     const userId = req.body.userId
     Sauce.findOne({ _id: req.params.id })
         .then((sauce) => {
-            const indexUserLiked = sauce.usersLiked.findIndex((id) => id === userId)
-            const indexUserDisliked = sauce.usersDisliked.findIndex((id) => id === userId)
+            const indexUserLiked = sauce.usersLiked.findIndex((id) => id === userId) // Vérifier si on a deja liker
+            const indexUserDisliked = sauce.usersDisliked.findIndex((id) => id === userId) // Vérifier si on a deja dislike
             if (like === 1) {
-
+                // Si on a pas déja liker, findIndex = -1 donc ++ pour rajouter 1 donc like
                 if (indexUserLiked === -1) {
                     sauce.likes++
                     sauce.usersLiked.push(userId)
                 }
             } else if (like === -1) {
+                // Si on a pas déja Disliker, findIndex = -1 donc ++ pour rajouter 1 donc dislike
                 if (indexUserDisliked === -1) {
                     sauce.dislikes++
                     sauce.usersDisliked.push(userId)
                 }
             } else if (like === 0) {
                 if (indexUserLiked >= 0) {
-                    sauce.usersLiked.splice(indexToDelete, 1)
+                    // Si la réponse du Findindex n'est pas -1 du coup on supprimer le like avec Splice
+                    sauce.usersLiked.splice(indexUserLiked, 1)
                     sauce.likes--
                 }
                 else {
                     if (indexUserDisliked >= 0) {
-                        sauce.usersDisliked.splice(indexToDelete, 1)
+                        // Si la réponse du Findindex n'est pas -1 du coup on supprimer le dislike avec Splice
+                        sauce.usersDisliked.splice(indexUserDisliked, 1)
                         sauce.dislikes--
                     }
                 }
